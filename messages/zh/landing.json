@@ -1,6 +1,6 @@
 {
-  "title": "waoowaoo",
-  "subtitle": "AI影视Studio",
+  "title": "智漫BETA",
+  "subtitle": "AI漫剧",
   "enterWorkspace": "进入工作区",
   "loading": "加载中...",
   "getStarted": "立即体验",
@@ -22,6 +22,6 @@
     }
   },
   "footer": {
-    "copyright": "2026 waoowaoo AI. All rights reserved."
+    "copyright": "2026 ZhiMan AI. All rights reserved."
   }
 }
