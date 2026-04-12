@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
     VideoEditorProject,
     VideoClip,
@@ -16,10 +16,25 @@ interface UseEditorStateProps {
 }
 
 export function useEditorState({ episodeId, initialProject }: UseEditorStateProps) {
-    // 项目数据
+    // 项目数据 - 使用 useRef 来跟踪上一次的 project id，避免循环更新的同时支持数据加载后的更新
     const [project, setProject] = useState<VideoEditorProject>(
-        initialProject || createDefaultProject(episodeId)
+        createDefaultProject(episodeId)
     )
+    const lastProjectIdRef = useRef<string | null>(null)
+
+    // 当 initialProject 改变时更新项目（只有当 timeline 有实际内容且与当前不同时才更新）
+    useEffect(() => {
+        if (!initialProject) return
+
+        // 如果 initialProject 有 timeline 内容，且与当前不同，则更新
+        const shouldUpdate = initialProject.timeline.length > 0 &&
+            initialProject.id !== lastProjectIdRef.current
+
+        if (shouldUpdate) {
+            lastProjectIdRef.current = initialProject.id
+            setProject(initialProject)
+        }
+    }, [initialProject])
 
     // 时间轴 UI 状态
     const [timelineState, setTimelineState] = useState<TimelineState>({

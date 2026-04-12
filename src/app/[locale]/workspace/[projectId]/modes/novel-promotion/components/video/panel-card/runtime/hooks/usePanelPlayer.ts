@@ -32,12 +32,20 @@ export function usePanelPlayer({
   }, [imageUrl, onPreviewImage])
 
   const handlePlayClick = useCallback(async () => {
+    console.log('[usePanelPlayer] handlePlayClick called')
     setIsPlaying(true)
+    console.log('[usePanelPlayer] setIsPlaying(true) called')
     setTimeout(async () => {
-      if (!videoRef.current) return
+      if (!videoRef.current) {
+        console.log('[usePanelPlayer] videoRef.current is null')
+        return
+      }
       try {
+        console.log('[usePanelPlayer] attempting to play video')
         await videoRef.current.play()
+        console.log('[usePanelPlayer] video.play() succeeded')
       } catch (error: unknown) {
+        console.error('[usePanelPlayer] video.play() error:', error)
         if ((error as { name?: string }).name !== 'AbortError') {
           _ulogError('Video play error:', error)
         }
