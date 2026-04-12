@@ -33,20 +33,6 @@ export default function VideoPanelCardHeader({ runtime }: VideoPanelCardHeaderPr
   const hasVisibleBaseVideo = !!media.baseVideoUrl
   const showFirstLastFrameSwitch = layout.hasNext
 
-  const handleDebugPlay = () => {
-    console.log('[DEBUG] handlePlayClick called')
-    console.log('[DEBUG] media.baseVideoUrl:', media.baseVideoUrl)
-    console.log('[DEBUG] media.currentVideoUrl:', media.currentVideoUrl)
-    console.log('[DEBUG] player.isPlaying:', player.isPlaying)
-    console.log('[DEBUG] panel.videoUrl:', panel.videoUrl)
-    console.log('[DEBUG] panel.videoGenerationMode:', panel.videoGenerationMode)
-    console.log('[DEBUG] layout.isLinked:', layout.isLinked)
-    console.log('[DEBUG] layout.isLastFrame:', layout.isLastFrame)
-    console.log('[DEBUG] hasVisibleBaseVideo:', hasVisibleBaseVideo)
-    player.handlePlayClick()
-    console.log('[DEBUG] handlePlayClick finished')
-  }
-
   return (
     <div className="bg-[var(--glass-bg-muted)] flex items-center justify-center relative" style={{ aspectRatio: player.cssAspectRatio }}>
       {hasVisibleBaseVideo && player.isPlaying ? (
@@ -62,7 +48,7 @@ export default function VideoPanelCardHeader({ runtime }: VideoPanelCardHeaderPr
       ) : hasVisibleBaseVideo ? (
         <div
           className="relative w-full h-full group cursor-pointer"
-          onClick={handleDebugPlay}
+          onClick={() => void player.handlePlayClick()}
         >
           <MediaImageWithLoading
             src={panel.imageUrl || ''}

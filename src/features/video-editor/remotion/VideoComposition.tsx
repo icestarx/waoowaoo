@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { AbsoluteFill, Sequence, Video, Audio, useCurrentFrame, interpolate } from 'remotion'
 import { VideoClip, BgmClip, EditorConfig } from '../types/editor.types'
 import { computeClipPositions } from '../utils/time-utils'
@@ -18,7 +18,7 @@ export const VideoComposition: React.FC<VideoCompositionProps> = ({
     bgmTrack,
     config
 }) => {
-    const computedClips = computeClipPositions(clips)
+    const computedClips = useMemo(() => computeClipPositions(clips), [clips])
 
     return (
         <AbsoluteFill style={{ backgroundColor: 'black' }}>

@@ -19,7 +19,7 @@ interface StoryboardPanel {
 export default function EditorStageRoute() {
   const runtime = useWorkspaceStageRuntime()
   const { projectId, episodeId } = useWorkspaceProvider()
-  const { storyboards } = useWorkspaceEpisodeStageData()
+  const { storyboards, voiceLines } = useWorkspaceEpisodeStageData()
 
   const panels = useMemo(() => {
     const allPanels: StoryboardPanel[] = []
@@ -39,10 +39,6 @@ export default function EditorStageRoute() {
     }
     return allPanels
   }, [storyboards])
-
-  const voiceLines = useMemo(() => {
-    return []
-  }, [])
 
   const initialProject = useMemo(() => {
     return createProjectFromPanels(episodeId || '', panels, voiceLines)

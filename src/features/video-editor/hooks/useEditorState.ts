@@ -16,25 +16,34 @@ interface UseEditorStateProps {
 }
 
 export function useEditorState({ episodeId, initialProject }: UseEditorStateProps) {
-    // 项目数据 - 使用 useRef 来跟踪上一次的 project id，避免循环更新的同时支持数据加载后的更新
+    // 项目数据
     const [project, setProject] = useState<VideoEditorProject>(
         createDefaultProject(episodeId)
     )
-    const lastProjectIdRef = useRef<string | null>(null)
+    const initRef = useRef<{ episodeId: string; projectId: string; initialRef?: VideoEditorProject } | null>(null)
 
-    // 当 initialProject 改变时更新项目（只有当 timeline 有实际内容且与当前不同时才更新）
+    // 只在 episodeId 改变时初始化，避免 initialProject 变化导致无限循环
     useEffect(() => {
-        if (!initialProject) return
-
-        // 如果 initialProject 有 timeline 内容，且与当前不同，则更新
-        const shouldUpdate = initialProject.timeline.length > 0 &&
-            initialProject.id !== lastProjectIdRef.current
-
-        if (shouldUpdate) {
-            lastProjectIdRef.current = initialProject.id
-            setProject(initialProject)
+        // 如果没有初始项目，或者初始项目没有 timeline 内容，使用默认项目
+        if (!initialProject || initialProject.timeline.length === 0) {
+            const defaultProj = createDefaultProject(episodeId)
+            // 检查是否需要更新：episodeId 改变或初始项目为空
+            if (initRef.current?.episodeId !== episodeId) {
+                setProject(defaultProj)
+                initRef.current = { episodeId, projectId: defaultProj.id, initialRef: undefined }
+            }
+            return
         }
-    }, [initialProject])
+
+        // 如果初始项目有内容，使用它
+        if (initialProject.timeline.length > 0) {
+            // 检查是否已经用这个 episodeId 初始化过，且是同一个 initialProject 引用
+            if (initRef.current?.episodeId !== episodeId || initRef.current?.initialRef !== initialProject) {
+                initRef.current = { episodeId, projectId: initialProject.id, initialRef: initialProject }
+                setProject(initialProject)
+            }
+        }
+    }, [episodeId]) // 关键：只依赖 episodeId
 
     // 时间轴 UI 状态
     const [timelineState, setTimelineState] = useState<TimelineState>({

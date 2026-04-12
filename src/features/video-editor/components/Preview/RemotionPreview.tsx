@@ -36,6 +36,12 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
         [project.timeline]
     )
 
+    const inputProps = useMemo(() => ({
+        clips: project.timeline,
+        bgmTrack: project.bgmTrack,
+        config: project.config
+    }), [project.timeline, project.bgmTrack, project.config])
+
     // 当 currentFrame 从外部改变时，同步到 Player
     useEffect(() => {
         const player = playerRef.current
@@ -61,6 +67,9 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
     }, [playing])
 
     // 监听 Player 的帧变化，同步到 timelineState
+    const onFrameChangeRef = useRef(onFrameChange)
+    onFrameChangeRef.current = onFrameChange
+
     useEffect(() => {
         const player = playerRef.current
         if (!player) return
@@ -68,7 +77,7 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
         const handleFrameUpdate = () => {
             const frame = player.getCurrentFrame()
             lastSyncedFrame.current = frame
-            onFrameChange?.(frame)
+            onFrameChangeRef.current?.(frame)
         }
 
         // Remotion Player 触发 timeupdate 事件
@@ -77,16 +86,19 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
         return () => {
             player.removeEventListener('frameupdate', handleFrameUpdate)
         }
-    }, [onFrameChange])
+    }, [])
 
     // 监听 Player 播放状态变化
+    const onPlayingChangeRef = useRef(onPlayingChange)
+    onPlayingChangeRef.current = onPlayingChange
+
     useEffect(() => {
         const player = playerRef.current
         if (!player) return
 
-        const handlePlay = () => onPlayingChange?.(true)
-        const handlePause = () => onPlayingChange?.(false)
-        const handleEnded = () => onPlayingChange?.(false)
+        const handlePlay = () => onPlayingChangeRef.current?.(true)
+        const handlePause = () => onPlayingChangeRef.current?.(false)
+        const handleEnded = () => onPlayingChangeRef.current?.(false)
 
         player.addEventListener('play', handlePlay)
         player.addEventListener('pause', handlePause)
@@ -97,7 +109,7 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
             player.removeEventListener('pause', handlePause)
             player.removeEventListener('ended', handleEnded)
         }
-    }, [onPlayingChange])
+    }, [])
 
     // 如果没有片段，显示占位
     if (project.timeline.length === 0) {
@@ -136,11 +148,7 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
             <Player
                 ref={playerRef}
                 component={VideoComposition}
-                inputProps={{
-                    clips: project.timeline,
-                    bgmTrack: project.bgmTrack,
-                    config: project.config
-                }}
+                inputProps={inputProps}
                 durationInFrames={Math.max(1, totalDuration)}
                 fps={project.config.fps}
                 compositionWidth={project.config.width}
