@@ -2,22 +2,12 @@ import { VideoClip, ComputedClip, VideoEditorProject } from '../types/editor.typ
 
 /**
  * 计算时间轴总时长 (帧数)
- * 考虑转场重叠
+ * 每个片段的时长独立计算，转场不重叠总时长
  */
 export function calculateTimelineDuration(clips: VideoClip[]): number {
     if (clips.length === 0) return 0
 
-    return clips.reduce((total, clip, index) => {
-        let duration = clip.durationInFrames
-
-        // 最后一个片段不减去转场时间
-        if (index < clips.length - 1 && clip.transition) {
-            // 转场会让总时长减少（重叠部分）
-            duration -= Math.floor(clip.transition.durationInFrames / 2)
-        }
-
-        return total + duration
-    }, 0)
+    return clips.reduce((total, clip) => total + clip.durationInFrames, 0)
 }
 
 /**
@@ -27,16 +17,10 @@ export function calculateTimelineDuration(clips: VideoClip[]): number {
 export function computeClipPositions(clips: VideoClip[]): ComputedClip[] {
     let currentFrame = 0
 
-    return clips.map((clip, index) => {
+    return clips.map((clip) => {
         const startFrame = currentFrame
-        const endFrame = startFrame + clip.durationInFrames
-
-        // 计算下一个片段的起始位置（考虑转场重叠）
-        if (clip.transition && index < clips.length - 1) {
-            currentFrame = endFrame - Math.floor(clip.transition.durationInFrames / 2)
-        } else {
-            currentFrame = endFrame
-        }
+        currentFrame += clip.durationInFrames
+        const endFrame = currentFrame
 
         return {
             ...clip,

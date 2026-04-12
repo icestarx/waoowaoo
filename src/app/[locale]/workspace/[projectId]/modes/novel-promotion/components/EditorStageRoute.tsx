@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+                                                                                                                                                                                                                                                                                                                                                                                                                                            import { useMemo, useEffect, useRef } from 'react'
 import { VideoEditorStage } from '@/features/video-editor'
 import { useWorkspaceStageRuntime } from '../WorkspaceStageRuntimeContext'
 import { useWorkspaceEpisodeStageData } from '../hooks/useWorkspaceEpisodeStageData'
@@ -18,8 +18,16 @@ interface StoryboardPanel {
 
 export default function EditorStageRoute() {
   const runtime = useWorkspaceStageRuntime()
-  const { projectId, episodeId } = useWorkspaceProvider()
+  const { projectId, episodeId, refreshData } = useWorkspaceProvider()
   const { storyboards, voiceLines } = useWorkspaceEpisodeStageData()
+  const mountedRef = useRef(false)
+
+  useEffect(() => {
+    if (mountedRef.current) {
+      refreshData()
+    }
+    mountedRef.current = true
+  }, [refreshData])
 
   const panels = useMemo(() => {
     const allPanels: StoryboardPanel[] = []

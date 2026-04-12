@@ -1,5 +1,6 @@
 import { logError as _ulogError } from '@/lib/logging/core'
-import { useCallback, useRef, useState, type MouseEvent } from 'react'
+import { useCallback, useRef, useState, type MouseEvent, useEffect } from 'react'
+import { videoCacheManager } from '@/features/video-editor/hooks/useVideoCache'
 
 interface UsePanelPlayerParams {
   videoRatio: string
@@ -25,6 +26,18 @@ export function usePanelPlayer({
     ? (showLipSyncVideo && lipSyncVideoUrl ? lipSyncVideoUrl : videoUrl)
     : undefined
 
+  useEffect(() => {
+    if (currentVideoUrl) {
+      const cached = videoCacheManager.get(currentVideoUrl)
+      if (cached && videoRef.current && videoRef.current.src !== cached.element.src) {
+        videoRef.current.src = cached.element.src
+        videoRef.current.load()
+      } else if (!cached && videoCacheManager.getLoadingState(currentVideoUrl) === 'idle') {
+        videoCacheManager.loadVideo(currentVideoUrl).catch(() => {})
+      }
+    }
+  }, [currentVideoUrl])
+
   const handlePreviewImage = useCallback((event?: MouseEvent) => {
     if (event) event.stopPropagation()
     if (!imageUrl || !onPreviewImage) return
@@ -35,6 +48,16 @@ export function usePanelPlayer({
     setIsPlaying(true)
     setTimeout(async () => {
       if (!videoRef.current) return
+
+      if (currentVideoUrl) {
+        const cached = videoCacheManager.get(currentVideoUrl)
+        if (cached) {
+          if (videoRef.current.src !== cached.element.src) {
+            videoRef.current.src = cached.element.src
+          }
+        }
+      }
+
       try {
         await videoRef.current.play()
       } catch (error: unknown) {
@@ -43,7 +66,7 @@ export function usePanelPlayer({
         }
       }
     }, 100)
-  }, [])
+  }, [currentVideoUrl])
 
   return {
     cssAspectRatio,

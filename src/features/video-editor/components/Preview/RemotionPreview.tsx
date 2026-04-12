@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useMemo, useRef, useEffect } from 'react'
+import React, { useMemo, useRef, useEffect, useCallback } from 'react'
 import { useTranslations } from 'next-intl'
 import { Player, PlayerRef } from '@remotion/player'
 import { AppIcon } from '@/components/ui/icons'
@@ -29,7 +29,8 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
 }) => {
     const t = useTranslations('video')
     const playerRef = useRef<PlayerRef>(null)
-    const lastSyncedFrame = useRef<number>(0)
+    const rafRef = useRef<number | null>(null)
+    const isSyncingRef = useRef(false)
 
     const totalDuration = useMemo(
         () => calculateTimelineDuration(project.timeline),
@@ -42,17 +43,16 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
         config: project.config
     }), [project.timeline, project.bgmTrack, project.config])
 
-    // 当 currentFrame 从外部改变时，同步到 Player
-    useEffect(() => {
+    // 使用 requestAnimationFrame 同步帧更新
+    const syncFrame = useCallback(() => {
         const player = playerRef.current
-        if (!player) return
+        if (!player || isSyncingRef.current) return
 
-        // 避免循环更新：只有当帧差距大于 1 时才 seek
-        if (Math.abs(currentFrame - lastSyncedFrame.current) > 1) {
-            player.seekTo(currentFrame)
-            lastSyncedFrame.current = currentFrame
-        }
-    }, [currentFrame])
+        isSyncingRef.current = true
+        const frame = player.getCurrentFrame()
+        onFrameChange?.(frame)
+        isSyncingRef.current = false
+    }, [onFrameChange])
 
     // 当 playing 状态改变时，控制 Player 播放/暂停
     useEffect(() => {
@@ -61,30 +61,28 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
 
         if (playing) {
             player.play()
+            // 启动帧同步循环
+            const tick = () => {
+                syncFrame()
+                rafRef.current = requestAnimationFrame(tick)
+            }
+            rafRef.current = requestAnimationFrame(tick)
         } else {
             player.pause()
+            // 停止帧同步
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(rafRef.current)
+                rafRef.current = null
+            }
         }
-    }, [playing])
+    }, [playing, syncFrame])
 
-    // 监听 Player 的帧变化，同步到 timelineState
-    const onFrameChangeRef = useRef(onFrameChange)
-    onFrameChangeRef.current = onFrameChange
-
+    // 清理
     useEffect(() => {
-        const player = playerRef.current
-        if (!player) return
-
-        const handleFrameUpdate = () => {
-            const frame = player.getCurrentFrame()
-            lastSyncedFrame.current = frame
-            onFrameChangeRef.current?.(frame)
-        }
-
-        // Remotion Player 触发 timeupdate 事件
-        player.addEventListener('frameupdate', handleFrameUpdate)
-
         return () => {
-            player.removeEventListener('frameupdate', handleFrameUpdate)
+            if (rafRef.current !== null) {
+                cancelAnimationFrame(rafRef.current)
+            }
         }
     }, [])
 
@@ -103,7 +101,6 @@ export const RemotionPreview: React.FC<RemotionPreviewProps> = ({
         player.addEventListener('play', handlePlay)
         player.addEventListener('pause', handlePause)
         player.addEventListener('ended', handleEnded)
-
         return () => {
             player.removeEventListener('play', handlePlay)
             player.removeEventListener('pause', handlePause)

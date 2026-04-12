@@ -53,8 +53,8 @@ export function createProjectFromPanels(
                 } : undefined
             },
             transition: index < videoPanels.length - 1 ? {
-                type: 'dissolve' as const,
-                durationInFrames: 15 // 0.5s @ 30fps
+                type: 'none' as const,
+                durationInFrames: 0
             } : undefined,
             metadata: {
                 panelId: panel.id || `${panel.storyboardId}-${panel.panelIndex ?? index}`,

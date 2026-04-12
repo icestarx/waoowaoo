@@ -28,6 +28,10 @@ export {
     createDefaultProject
 } from './utils/time-utils'
 
+// Video Cache
+export { videoCacheManager } from './hooks/useVideoCache'
+export { VideoPreloadProvider, useVideoPreload } from './hooks/useVideoPreload'
+
 export {
     migrateProjectData,
     validateProjectData

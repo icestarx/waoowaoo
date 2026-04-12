@@ -20,30 +20,44 @@ export function useEditorState({ episodeId, initialProject }: UseEditorStateProp
     const [project, setProject] = useState<VideoEditorProject>(
         createDefaultProject(episodeId)
     )
-    const initRef = useRef<{ episodeId: string; projectId: string; initialRef?: VideoEditorProject } | null>(null)
+    const initRef = useRef<{
+        episodeId: string
+        projectId: string
+        hasContent: boolean
+        projectRef: VideoEditorProject | undefined
+    } | null>(null)
 
-    // 只在 episodeId 改变时初始化，避免 initialProject 变化导致无限循环
+    // 响应 episodeId 和 initialProject 的变化
     useEffect(() => {
-        // 如果没有初始项目，或者初始项目没有 timeline 内容，使用默认项目
-        if (!initialProject || initialProject.timeline.length === 0) {
-            const defaultProj = createDefaultProject(episodeId)
-            // 检查是否需要更新：episodeId 改变或初始项目为空
-            if (initRef.current?.episodeId !== episodeId) {
-                setProject(defaultProj)
-                initRef.current = { episodeId, projectId: defaultProj.id, initialRef: undefined }
-            }
-            return
-        }
+        const hasInitialContent = initialProject && initialProject.timeline.length > 0
 
-        // 如果初始项目有内容，使用它
-        if (initialProject.timeline.length > 0) {
-            // 检查是否已经用这个 episodeId 初始化过，且是同一个 initialProject 引用
-            if (initRef.current?.episodeId !== episodeId || initRef.current?.initialRef !== initialProject) {
-                initRef.current = { episodeId, projectId: initialProject.id, initialRef: initialProject }
-                setProject(initialProject)
+        // 只有当 episodeId 改变，或 initialProject 从空变为有时才更新
+        const episodeChanged = initRef.current?.episodeId !== episodeId
+        const contentJustLoaded = hasInitialContent && !initRef.current?.hasContent
+
+        if (!episodeChanged && !contentJustLoaded) return
+
+        if (hasInitialContent) {
+            // 避免重复设置相同的项目
+            if (initRef.current?.projectRef === initialProject) return
+            initRef.current = {
+                episodeId,
+                projectId: initialProject.id,
+                hasContent: true,
+                projectRef: initialProject
             }
+            setProject(initialProject)
+        } else {
+            const defaultProj = createDefaultProject(episodeId)
+            initRef.current = {
+                episodeId,
+                projectId: defaultProj.id,
+                hasContent: false,
+                projectRef: undefined
+            }
+            setProject(defaultProj)
         }
-    }, [episodeId]) // 关键：只依赖 episodeId
+    }, [episodeId, initialProject])
 
     // 时间轴 UI 状态
     const [timelineState, setTimelineState] = useState<TimelineState>({
