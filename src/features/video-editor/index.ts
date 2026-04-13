@@ -39,6 +39,7 @@ export {
 
 // Components
 export { VideoEditorStage } from './components/VideoEditorStage'
+export { VideoEditorPage } from './components/VideoEditorPage'
 export { TransitionPicker } from './components/TransitionPicker'
 
 // Hooks

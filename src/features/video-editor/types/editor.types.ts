@@ -83,6 +83,8 @@ export interface ClipMetadata {
     panelId: string
     storyboardId: string
     description?: string
+    imageUrl?: string
+    lipSyncVideoUrl?: string
 }
 
 /**

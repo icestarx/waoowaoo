@@ -17,8 +17,19 @@ interface PanelData {
     panelIndex?: number
     storyboardId: string
     videoUrl?: string
+    imageUrl?: string
+    lipSyncVideoUrl?: string
     description?: string
     duration?: number
+}
+
+interface VoiceLineData {
+    id: string
+    speaker: string
+    content: string
+    audioUrl?: string | null
+    matchedStoryboardId?: string | null
+    matchedPanelIndex?: number | null
 }
 
 /**
@@ -27,20 +38,33 @@ interface PanelData {
 export function createProjectFromPanels(
     episodeId: string,
     panels: PanelData[],
-    voiceLines?: Array<{ id: string; speaker: string; content: string; audioUrl?: string | null }>
+    voiceLines?: VoiceLineData[]
 ): VideoEditorProject {
-    // 过滤出有视频的面板
-    const videoPanels = panels.filter(p => p.videoUrl)
+    // 构建 voice line 按 storyboardId+panelIndex 的索引
+    const voiceLineMap = new Map<string, VoiceLineData>()
+    if (voiceLines) {
+        for (const vl of voiceLines) {
+            if (vl.matchedStoryboardId != null && vl.matchedPanelIndex != null) {
+                voiceLineMap.set(`${vl.matchedStoryboardId}-${vl.matchedPanelIndex}`, vl)
+            }
+        }
+    }
 
-    // 创建视频片段
-    const timeline: VideoClip[] = videoPanels.map((panel, index) => {
-        // 查找匹配的配音（简单匹配：按索引）
-        const matchedVoice = voiceLines?.[index]
+    // 只保留有实际视频的面板（仅有图片的不加入时间轴）
+    const usablePanels = panels.filter(p => p.videoUrl || p.lipSyncVideoUrl)
+
+    const timeline: VideoClip[] = usablePanels.map((panel, index) => {
+        // 按 storyboardId + panelIndex 匹配 voice line
+        const panelKey = `${panel.storyboardId}-${panel.panelIndex ?? index}`
+        const matchedVoice = voiceLineMap.get(panelKey)
+
+        // 优先使用唇同步视频 → 普通视频
+        const src = panel.lipSyncVideoUrl || panel.videoUrl || ''
 
         return {
             id: `clip_${panel.id || panel.storyboardId}_${panel.panelIndex ?? index}`,
-            src: panel.videoUrl!,
-            durationInFrames: Math.round((panel.duration || 3) * 30), // 默认 3 秒，30fps
+            src,
+            durationInFrames: Math.round((panel.duration || 3) * 30),
             attachment: {
                 audio: matchedVoice?.audioUrl ? {
                     src: matchedVoice.audioUrl,
@@ -52,14 +76,16 @@ export function createProjectFromPanels(
                     style: 'default' as const
                 } : undefined
             },
-            transition: index < videoPanels.length - 1 ? {
+            transition: index < usablePanels.length - 1 ? {
                 type: 'none' as const,
                 durationInFrames: 0
             } : undefined,
             metadata: {
-                panelId: panel.id || `${panel.storyboardId}-${panel.panelIndex ?? index}`,
+                panelId: panel.id || panelKey,
                 storyboardId: panel.storyboardId,
-                description: panel.description || undefined
+                description: panel.description || undefined,
+                imageUrl: panel.imageUrl || undefined,
+                lipSyncVideoUrl: panel.lipSyncVideoUrl || undefined,
             }
         }
     })

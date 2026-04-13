@@ -42,13 +42,13 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center gap-2">
-              <Link href={session ? buildAuthenticatedHomeTarget() : { pathname: '/' }} className="group">
+              <Link href={session ? buildAuthenticatedHomeTarget() : { pathname: '/' }} className="group flex items-center">
                 <Image
                   src="/logo-small.png?v=1"
                   alt={tc('appName')}
-                  width={80}
-                  height={80}
-                  className="object-contain transition-transform group-hover:scale-110"
+                  width={36}
+                  height={36}
+                  className="object-contain transition-transform duration-200 ease-out group-hover:scale-105"
                 />
               </Link>
               <button

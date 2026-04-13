@@ -1,6 +1,7 @@
                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         'use client'
 
 import React, { useEffect, useRef, useMemo, useCallback, useState } from 'react'
+import { logError as _ulogError } from '@/lib/logging/core'
 import { useTranslations } from 'next-intl'
 import { AppIcon } from '@/components/ui/icons'
 import { useEditorState } from '../hooks/useEditorState'
@@ -38,7 +39,7 @@ function RemotionPreview({ project, currentFrame, playing, onFrameChange, onPlay
     const checkAllVideosReady = useCallback(() => {
         return computedClips.every(clip => {
             const video = videoRefs.current.get(clip.src)
-            return video && video.readyState >= 3
+            return video && video.readyState >= 2
         })
     }, [computedClips])
 
@@ -46,7 +47,7 @@ function RemotionPreview({ project, currentFrame, playing, onFrameChange, onPlay
         const loadedVideos: string[] = []
         computedClips.forEach(clip => {
             const video = videoRefs.current.get(clip.src)
-            if (video && video.readyState >= 3) {
+            if (video && video.readyState >= 2) {
                 loadedVideos.push(clip.src)
             }
         })
@@ -68,12 +69,12 @@ function RemotionPreview({ project, currentFrame, playing, onFrameChange, onPlay
                     initializedRef.current.add(clip.src)
                     markLoaded(clip.src, cached.thumbnail)
 
-                    if (cached.element.readyState < 3) {
+                    if (cached.element.readyState < 2) {
                         const onReady = () => {
                             setIsReady(checkAllVideosReady())
                             updateLoadingProgress()
                         }
-                        cached.element.addEventListener('canplaythrough', onReady, { once: true })
+                        cached.element.addEventListener('loadeddata', onReady, { once: true })
                     }
                 } else {
                     preloadVideo(clip.src).then(() => {
@@ -339,11 +340,13 @@ function VideoEditorStageContent({
     projectId,
     episodeId,
     initialProject,
+    initialPanelId,
     onBack
 }: {
     projectId: string
     episodeId: string
     initialProject?: VideoEditorProject
+    initialPanelId?: string
     onBack?: () => void
 }) {
     const t = useTranslations('video')
@@ -359,8 +362,18 @@ function VideoEditorStageContent({
         seek,
         selectClip,
         setZoom,
-        markSaved
+        markSaved,
+        seekToClipByPanelId
     } = useEditorState({ episodeId, initialProject })
+
+    // 初始化时跳转到指定 panel
+    const initialSeekDone = useRef(false)
+    useEffect(() => {
+        if (initialPanelId && project.timeline.length > 0 && !initialSeekDone.current) {
+            seekToClipByPanelId(initialPanelId)
+            initialSeekDone.current = true
+        }
+    }, [initialPanelId, project.timeline.length, seekToClipByPanelId])
 
     const { saveProject, startRender } = useEditorActions({ projectId, episodeId })
     const { getThumbnail, isAllLoaded, loadedCount, totalCount } = useVideoPreload()
@@ -402,7 +415,7 @@ function VideoEditorStageContent({
     }
 
     const selectedClip = project.timeline.find(c => c.id === timelineState.selectedClipId)
-    const getClipThumbnail = (clip: VideoClip) => getThumbnail(clip.src)
+    const getClipThumbnail = (clip: VideoClip): string | undefined => getThumbnail(clip.src) ?? undefined
 
     return (
         <div className="video-editor-stage" style={{
@@ -555,7 +568,7 @@ function VideoEditorStageContent({
                                     justifyContent: 'center'
                                 }}>
                                     <img
-                                        src={getClipThumbnail(selectedClip)}
+                                        src={getClipThumbnail(selectedClip) || undefined}
                                         alt="Video thumbnail"
                                         style={{
                                             width: '100%',
@@ -579,7 +592,7 @@ function VideoEditorStageContent({
                                     {t('editor.right.transitionLabel')}
                                 </h4>
                                 <TransitionPicker
-                                    value={(selectedClip.transition?.type as string) || 'none'}
+                                    value={selectedClip.transition?.type || 'none'}
                                     duration={selectedClip.transition?.durationInFrames || 15}
                                     onChange={(type, duration) => {
                                         updateClip(selectedClip.id, {
@@ -634,6 +647,7 @@ interface VideoEditorStageProps {
     projectId: string
     episodeId: string
     initialProject?: VideoEditorProject
+    initialPanelId?: string
     onBack?: () => void
 }
 
@@ -641,6 +655,7 @@ export function VideoEditorStage({
     projectId,
     episodeId,
     initialProject,
+    initialPanelId,
     onBack
 }: VideoEditorStageProps) {
     return (
@@ -649,6 +664,7 @@ export function VideoEditorStage({
                 projectId={projectId}
                 episodeId={episodeId}
                 initialProject={initialProject}
+                initialPanelId={initialPanelId}
                 onBack={onBack}
             />
         </VideoPreloadProvider>

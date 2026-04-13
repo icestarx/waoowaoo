@@ -164,6 +164,10 @@
       "deleteClip": "删除片段",
       "selectClipHint": "选择一个片段查看属性"
     },
+    "loading": {
+      "preparing": "正在准备剪辑素材...",
+      "progress": "已加载 {loaded} / {total} 个片段"
+    },
     "preview": {
       "emptyStartEditing": "添加素材开始编辑"
     },

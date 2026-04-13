@@ -164,6 +164,10 @@
       "deleteClip": "Delete Clip",
       "selectClipHint": "Select a clip to view properties"
     },
+    "loading": {
+      "preparing": "Preparing clips...",
+      "progress": "Loaded {loaded} / {total} clips"
+    },
     "preview": {
       "emptyStartEditing": "Add media to start editing"
     },

@@ -7,7 +7,8 @@ import {
     BgmClip,
     TimelineState,
     createDefaultProject,
-    generateClipId
+    generateClipId,
+    computeClipPositions,
 } from '../index'
 
 interface UseEditorStateProps {
@@ -20,42 +21,18 @@ export function useEditorState({ episodeId, initialProject }: UseEditorStateProp
     const [project, setProject] = useState<VideoEditorProject>(
         createDefaultProject(episodeId)
     )
-    const initRef = useRef<{
-        episodeId: string
-        projectId: string
-        hasContent: boolean
-        projectRef: VideoEditorProject | undefined
-    } | null>(null)
+    const prevProjectRef = useRef<VideoEditorProject | undefined>(undefined)
 
     // 响应 episodeId 和 initialProject 的变化
     useEffect(() => {
-        const hasInitialContent = initialProject && initialProject.timeline.length > 0
+        // 跳过引用相同的对象（useMemo 保证内容不变时引用不变）
+        if (initialProject === prevProjectRef.current) return
+        prevProjectRef.current = initialProject
 
-        // 只有当 episodeId 改变，或 initialProject 从空变为有时才更新
-        const episodeChanged = initRef.current?.episodeId !== episodeId
-        const contentJustLoaded = hasInitialContent && !initRef.current?.hasContent
-
-        if (!episodeChanged && !contentJustLoaded) return
-
-        if (hasInitialContent) {
-            // 避免重复设置相同的项目
-            if (initRef.current?.projectRef === initialProject) return
-            initRef.current = {
-                episodeId,
-                projectId: initialProject.id,
-                hasContent: true,
-                projectRef: initialProject
-            }
+        if (initialProject && initialProject.timeline.length > 0) {
             setProject(initialProject)
         } else {
-            const defaultProj = createDefaultProject(episodeId)
-            initRef.current = {
-                episodeId,
-                projectId: defaultProj.id,
-                hasContent: false,
-                projectRef: undefined
-            }
-            setProject(defaultProj)
+            setProject(createDefaultProject(episodeId))
         }
     }, [episodeId, initialProject])
 
@@ -181,6 +158,19 @@ export function useEditorState({ episodeId, initialProject }: UseEditorStateProp
         setIsDirty(false)
     }, [])
 
+    const seekToClipByPanelId = useCallback((panelId: string) => {
+        const computed = computeClipPositions(project.timeline)
+        const target = computed.find(c => c.metadata?.panelId === panelId)
+        if (target) {
+            setTimelineState(prev => ({
+                ...prev,
+                currentFrame: target.startFrame,
+                selectedClipId: target.id,
+                playing: false,
+            }))
+        }
+    }, [project.timeline])
+
     return {
         // State
         project,
@@ -208,6 +198,9 @@ export function useEditorState({ episodeId, initialProject }: UseEditorStateProp
         resetProject,
         loadProject,
         markSaved,
-        setProject
+        setProject,
+
+        // Navigation
+        seekToClipByPanelId
     }
 }

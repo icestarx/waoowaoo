@@ -1,7 +1,7 @@
 'use client'
 
-                                                                                                                                                                                                                                                                                                                                                                                                                                            import { useMemo, useEffect, useRef } from 'react'
-import { VideoEditorStage } from '@/features/video-editor'
+import { useMemo, useEffect, useRef } from 'react'
+import { VideoEditorPage } from '@/features/video-editor'
 import { useWorkspaceStageRuntime } from '../WorkspaceStageRuntimeContext'
 import { useWorkspaceEpisodeStageData } from '../hooks/useWorkspaceEpisodeStageData'
 import { useWorkspaceProvider } from '../WorkspaceProvider'
@@ -12,8 +12,19 @@ interface StoryboardPanel {
   storyboardId: string
   panelIndex?: number
   videoUrl?: string
+  imageUrl?: string
+  lipSyncVideoUrl?: string
   description?: string
   duration?: number
+}
+
+interface VoiceLineRaw {
+  id: string
+  speaker: string
+  content: string
+  audioUrl?: string | null
+  matchedStoryboardId?: string | null
+  matchedPanelIndex?: number | null
 }
 
 export default function EditorStageRoute() {
@@ -39,6 +50,8 @@ export default function EditorStageRoute() {
             storyboardId: sb.id,
             panelIndex: panel.panelIndex,
             videoUrl: panel.videoUrl ?? undefined,
+            imageUrl: panel.imageUrl ?? undefined,
+            lipSyncVideoUrl: panel.lipSyncVideoUrl ?? undefined,
             description: panel.description ?? undefined,
             duration: panel.duration ?? undefined,
           })
@@ -48,17 +61,29 @@ export default function EditorStageRoute() {
     return allPanels
   }, [storyboards])
 
+  const typedVoiceLines = useMemo(() => {
+    return (voiceLines as VoiceLineRaw[]).map((vl) => ({
+      id: vl.id,
+      speaker: vl.speaker,
+      content: vl.content,
+      audioUrl: vl.audioUrl,
+      matchedStoryboardId: vl.matchedStoryboardId,
+      matchedPanelIndex: vl.matchedPanelIndex,
+    }))
+  }, [voiceLines])
+
   const initialProject = useMemo(() => {
-    return createProjectFromPanels(episodeId || '', panels, voiceLines)
-  }, [episodeId, panels, voiceLines])
+    return createProjectFromPanels(episodeId || '', panels, typedVoiceLines)
+  }, [episodeId, panels, typedVoiceLines])
+
   if (!episodeId) return null
 
   return (
-    <VideoEditorStage
+    <VideoEditorPage
       projectId={projectId}
       episodeId={episodeId}
       initialProject={initialProject}
-      onBack={() => runtime.onStageChange('storyboard')}
+      onBack={() => runtime.onStageChange('videos')}
     />
   )
 }
